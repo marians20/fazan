@@ -9,6 +9,8 @@ namespace PlayGame
     using System.Threading.Tasks;
     using Fazan.Domain.Abstractions;
     using Fazan.Domain.Services;
+    using Fazan.Infrastructure.Logging;
+    using MassTransit.Mediator;
 
     public class Application
     {
@@ -19,7 +21,8 @@ namespace PlayGame
             IServiceCollection services = new ServiceCollection();
 
             services.RegisterSqliteWordsRepository(@"Data Source=d:\fazan.sqlite")
-                .RegisterWordsService();
+                .RegisterWordsService()
+                .RegisterMassTransit();
 
             serviceProvider = services.BuildServiceProvider();
         }
@@ -27,22 +30,23 @@ namespace PlayGame
         public async Task<Result> Run()
         {
             var words = serviceProvider.GetService<IWordsService>();
+            var mediator = serviceProvider.GetService<IMediator>();
 
             string playersWord;
             string computersWord = "";
 
             do
             {
-                Console.WriteLine("Enter a word");
+                await mediator.Send(Log.Create("Enter a word"));
                 playersWord = Console.ReadLine();
 
                 await words.GetHardestWord(playersWord.Substring(playersWord.Length - Constants.LettersCount))
-                    .Tap(word =>
+                    .Tap(async word =>
                     {
                         computersWord = word;
-                        Console.WriteLine($"- {computersWord}");
+                        await mediator.Send(Log.Create($"- {computersWord}"));
                     })
-                    .OnFailure(error => Console.WriteLine($"- M-ai ars! :("));
+                    .OnFailure(async error =>  await mediator.Send(Log.Create("- M-ai ars! :(")));
 
 
             } while (!string.IsNullOrEmpty(playersWord) && !string.IsNullOrEmpty(computersWord));

@@ -5,11 +5,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MassTransit" Version="7.0.2" />
+    <PackageReference Include="MassTransit.Extensions.DependencyInjection" Version="7.0.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="3.1.6" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Domain\Fazan.Domain.Abstractions\Fazan.Domain.Abstractions.csproj" />
+    <ProjectReference Include="..\Fazan.Infrastructure.Logging\Fazan.Infrastructure.Logging.csproj" />
     <ProjectReference Include="..\Repositories\Fazan.Infrastructure.Repositories.PlainTextFile\Fazan.Infrastructure.Repositories.PlainTextFile.csproj" />
     <ProjectReference Include="..\Repositories\Fazan.Infrastructure.Repositories.SqliteRepository\Fazan.Infrastructure.Repositories.SqliteRepository.csproj" />
   </ItemGroup>
