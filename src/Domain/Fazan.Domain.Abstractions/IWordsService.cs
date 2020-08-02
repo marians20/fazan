@@ -1,9 +1,8 @@
 ﻿namespace Fazan.Domain.Abstractions
 {
-    using CSharpFunctionalExtensions;
     using System.Collections.Generic;
     using System.Threading.Tasks;
-    using Models;
+    using CSharpFunctionalExtensions;
 
     public interface IWordsService
     {
@@ -12,5 +11,11 @@
         Task<Result<string>> GetMostEasyWord(string firstTwoCharacters);
 
         Task<Result<string>> GetHardestWord(string firstTwoCharacters);
+
+        Task<Result<string>> GetAWord(string firstTwoCharacters, IList<string> excludedWords);
+
+        Task<Result> Calculate();
+
+        Task<bool> Exists(string word);
     }
 }

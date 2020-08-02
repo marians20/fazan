@@ -26,5 +26,11 @@
 
         public static IServiceCollection RegisterValidators(this IServiceCollection services) =>
             services.AddTransient<AbstractValidator<Word>, WordValidator>();
+
+        public static IServiceCollection RegisterAllDomainServices(this IServiceCollection services) =>
+            services.RegisterDomProcessor()
+                .RegisterCrawlerService()
+                .RegisterWordsService()
+                .RegisterValidators();
     }
 }

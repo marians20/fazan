@@ -25,7 +25,10 @@ namespace Fazan.Domain.Services.WordsServices
         public async Task<Result> CreateBulk(IList<string> words)
         {
             var errors = new List<string>();
-            var parsedWords = words.Select(word => new Word
+            var parsedWords = words
+                .Select(x => x.Trim())
+                .Where(x => !string.IsNullOrEmpty(x) && x.Length >= Constants.LettersCount)
+                .Select(word => new Word
             {
                 Id = Guid.NewGuid(),
                 Value = word,
@@ -52,14 +55,20 @@ namespace Fazan.Domain.Services.WordsServices
             return await repository.CreateBulk(wordsToBeAdded);
         }
 
-        public Task<Result<string>> GetMostEasyWord(string firstTwoCharacters)
-        {
-            return repository.GetMostEasyWord(firstTwoCharacters).Map(word => word?.Value ?? string.Empty);
-        }
+        public Task<Result<string>> GetMostEasyWord(string firstTwoCharacters) =>
+            repository.GetMostEasyWord(firstTwoCharacters).Map(word => word?.Value ?? string.Empty);
 
-        public Task<Result<string>> GetHardestWord(string firstTwoCharacters)
-        {
-            return repository.GetHardestWord(firstTwoCharacters).Map(word => word?.Value ?? string.Empty);
-        }
+        public Task<Result<string>> GetHardestWord(string firstTwoCharacters) =>
+            repository.GetHardestWord(firstTwoCharacters).Map(word => word?.Value ?? string.Empty);
+
+        /// <inheritdoc />
+        public Task<Result<string>> GetAWord(string firstTwoCharacters, IList<string> excludedWords) =>
+            repository.GetAWord(firstTwoCharacters, excludedWords).Map(word => word?.Value ?? string.Empty);
+
+        /// <inheritdoc />
+        public Task<Result> Calculate() => repository.Calculate();
+
+        /// <inheritdoc />
+        public Task<bool> Exists(string word) => repository.Exists(word);
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace Fazan.Infrastructure.Ioc
+﻿using Fazan.Domain.Ioc;
+
+namespace Fazan.Infrastructure.Ioc
 {
     using Fazan.Domain.Abstractions;
     using Fazan.Infrastructure.Logging;
@@ -11,6 +13,12 @@
 
     public static class Ioc
     {
+        public static IServiceCollection RegisterLogging(this IServiceCollection services) =>
+            services.AddLogging(
+                cfg =>
+                    {
+                    });
+
         public static IServiceCollection RegisterPlainTextFileWordsRepository(this IServiceCollection services, string destinationPath) =>
             services.AddTransient<IWordsRepository>(s => new Repositories.PlainTextFile.WordsRepository(destinationPath));
 
@@ -31,5 +39,8 @@
                 {
                     cfg.Consumer<LoggingConsumer>();
                 }));
+
+        public static IServiceCollection RegisterDomainServices(this IServiceCollection services) =>
+            services.RegisterAllDomainServices();
     }
 }

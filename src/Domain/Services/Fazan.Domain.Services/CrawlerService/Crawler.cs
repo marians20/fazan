@@ -1,4 +1,9 @@
-﻿namespace Fazan.Domain.Services.CrawlerService
+﻿using Fazan.Domain.Models;
+
+using MassTransit.Context;
+using MassTransit.Mediator;
+
+namespace Fazan.Domain.Services.CrawlerService
 {
     using System;
     using System.IO;
@@ -16,9 +21,12 @@
     {
         private readonly ICrawlerContext context;
 
-        public Crawler(ICrawlerContext context)
+        private readonly IMediator mediator;
+
+        public Crawler(ICrawlerContext context, IMediator mediator)
         {
             this.context = context;
+            this.mediator = mediator;
         }
 
         public Task<Result<HtmlDocument>> GetPageContent(string url) =>
@@ -37,55 +45,66 @@
             var host = uriBuildr.Host;
             var port = uriBuildr.Port;
 
-            Result<HtmlDocument> result;
+            Result<HtmlDocument> result = Result.Success(new HtmlDocument());
             do
             {
-                result = await GetPageContent(url)
-                    .Tap(htmlDocument =>
-                    {
-                        var words = context.DomProcessor.GetWordsFromDoc(htmlDocument);
-                        Console.WriteLine(Resources.Crawler_ReadAllPages_Adding_words_from__0__to__1_, words.First(), words.Last());
-                        context.WordsService.CreateBulk(words);
-                        var nextUrl = context.DomProcessor.GetNextPageUrl(htmlDocument);
-                        oldUrl = url;
-                        url = $"{scheme}://{host}:{port}{nextUrl}";
-                    });
-            } while (result.IsSuccess && !url.Equals(oldUrl));
+                result = await GetPageContent(url).Tap(
+                             async htmlDocument =>
+                                 {
+                                     var words = context.DomProcessor.GetWordsFromDoc(htmlDocument);
+                                     await mediator.Send(Log.Create(string.Format(
+                                         Resources.Crawler_ReadAllPages_Adding_words_from__0__to__1_,
+                                         words.First(),
+                                         words.Last()))).ConfigureAwait(false);
+                                     await context.WordsService.CreateBulk(words).ConfigureAwait(false);
+                                     var nextUrl = context.DomProcessor.GetNextPageUrl(htmlDocument);
+                                     oldUrl = url;
+                                     url = $"{scheme}://{host}:{port}{nextUrl}";
+                                 }).ConfigureAwait(false);
+            }
+            while (result.IsSuccess && !url.Equals(oldUrl));
 
+            if (!result.IsSuccess)
+            {
+                return result;
+            }
+
+            await mediator.Send(Log.Create("Started calculating words dependencies")).ConfigureAwait(false);
+            await context.WordsService.Calculate().ConfigureAwait(false);
             return result;
         }
 
-        private async Task<Result<string>> GetBodyUsingWebRequest(string url) =>
-            await Task.Run(() =>
-            {
-                var request = (HttpWebRequest) WebRequest.Create(url);
-                request.AllowAutoRedirect = true;
-                Result<string> bodyResult;
-                using (var response = (HttpWebResponse) (request.GetResponse()))
+        private Task<Result<string>> GetBodyUsingWebRequest(string url) =>
+            Task.Run(() =>
                 {
-                    string result;
-                    using (var dataStream = response.GetResponseStream())
+                    var request = (HttpWebRequest) WebRequest.Create(url);
+                    request.AllowAutoRedirect = true;
+                    Result<string> bodyResult;
+                    using (var response = (HttpWebResponse) request.GetResponse())
                     {
-                        using (var reader = new StreamReader(dataStream))
+                        string result;
+                        using (var dataStream = response.GetResponseStream())
                         {
-                            result = reader.ReadToEnd();
+                            using (var reader = new StreamReader(dataStream))
+                            {
+                                result = reader.ReadToEnd();
+                            }
                         }
+
+                        bodyResult = response.StatusCode == HttpStatusCode.OK
+                                         ? Result.Success(result)
+                                         : Result.Failure<string>(result);
+
+                        response.Close();
                     }
 
-                    bodyResult = response.StatusCode == HttpStatusCode.OK
-                        ? Result.Success(result)
-                        : Result.Failure<string>(result);
-
-                    response.Close();
-                }
-
-                return bodyResult;
-            });
+                    return bodyResult;
+                });
 
         private async Task<Result<string>> GetBodyUsingHttpClient(string url)
         {
             var request = new HttpRequestMessage(HttpMethod.Get, url);
-            var response = await context.Client.SendAsync(request);
+            var response = await context.Client.SendAsync(request).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 return Result.Failure<string>($"Status code: {response.StatusCode}");

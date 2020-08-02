@@ -1,57 +1,85 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using CSharpFunctionalExtensions;
+using Fazan.Application.Common;
+using Fazan.Domain.Abstractions;
+using Fazan.Domain.Ioc;
+using Fazan.Domain.Models;
+using Fazan.Domain.Services;
+using Fazan.Infrastructure.Ioc;
+using MassTransit.Mediator;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace PlayGame
 {
-    using CSharpFunctionalExtensions;
-    using Fazan.Domain.Ioc;
-    using Fazan.Infrastructure.Ioc;
-    using Microsoft.Extensions.DependencyInjection;
-    using System.Threading.Tasks;
-    using Fazan.Domain.Abstractions;
-    using Fazan.Domain.Services;
-    using Fazan.Infrastructure.Logging;
-    using MassTransit.Mediator;
-
-    public class Application
+    public class Application : IApplication
     {
-        private ServiceProvider serviceProvider;
-
         public void ConfigureDi()
         {
             IServiceCollection services = new ServiceCollection();
 
             services.RegisterSqliteWordsRepository(@"Data Source=d:\fazan.sqlite")
-                .RegisterWordsService()
+                .RegisterAllDomainServices()
                 .RegisterMassTransit();
 
-            serviceProvider = services.BuildServiceProvider();
+            ServiceLocator.Provider = services.BuildServiceProvider();
         }
 
         public async Task<Result> Run()
         {
-            var words = serviceProvider.GetService<IWordsService>();
-            var mediator = serviceProvider.GetService<IMediator>();
+            var words = ServiceLocator.GetService<IWordsService>();
+            var mediator = ServiceLocator.GetService<IMediator>();
+
+            var usedWords = new List<string>();
 
             string playersWord;
-            string computersWord = "";
+            var computersWord = string.Empty;
 
             do
             {
-                await mediator.Send(Log.Create("Enter a word"));
-                playersWord = Console.ReadLine();
-
-                await words.GetHardestWord(playersWord.Substring(playersWord.Length - Constants.LettersCount))
-                    .Tap(async word =>
+                bool wordExists = true;
+                do
+                {
+                    await mediator.Send(Log.Create("Enter a word")).ConfigureAwait(false);
+                    playersWord = Console.ReadLine().Trim().ToLower();
+                    if (usedWords.Contains(playersWord))
                     {
-                        computersWord = word;
-                        await mediator.Send(Log.Create($"- {computersWord}"));
-                    })
-                    .OnFailure(async error =>  await mediator.Send(Log.Create("- M-ai ars! :(")));
+                        await mediator.Send(Log.Create($"Word {playersWord} already used! Try again.")).ConfigureAwait(false);
+                        continue;
+                    }
 
+                    wordExists = string.IsNullOrEmpty(playersWord) || await words.Exists(playersWord).ConfigureAwait(false);
 
-            } while (!string.IsNullOrEmpty(playersWord) && !string.IsNullOrEmpty(computersWord));
+                    if (!wordExists)
+                    {
+                        await mediator.Send(Log.Create($"Word {playersWord} does not exist! Try again.")).ConfigureAwait(false);
+                        continue;
+                    }
+                }
+                while ((!string.IsNullOrEmpty(playersWord) && usedWords.Contains(playersWord)) || !wordExists);
+
+                if (string.IsNullOrEmpty(playersWord))
+                {
+                    await mediator.Send(Log.Create("- Te-am ars! :)")).ConfigureAwait(false);
+                }
+
+                usedWords.Add(playersWord);
+
+                await ComputerReply(words, playersWord, usedWords).Tap(
+                    async word =>
+                        {
+                            computersWord = word;
+                            usedWords.Add(word);
+                            await mediator.Send(Log.Create($"- {computersWord}")).ConfigureAwait(false);
+                        }).OnFailure(error => mediator.Send(Log.Create("- M-ai ars! :("))).ConfigureAwait(false);
+            }
+            while (!(string.IsNullOrEmpty(playersWord) || string.IsNullOrEmpty(computersWord)));
 
             return Result.Success();
         }
+
+        private static Task<Result<string>> ComputerReply(IWordsService words, string playersWord, IList<string> excludedWords) =>
+            words.GetAWord(playersWord.Substring(playersWord.Length - Constants.LettersCount), excludedWords);
     }
 }

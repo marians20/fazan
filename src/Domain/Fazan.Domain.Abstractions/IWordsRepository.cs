@@ -16,5 +16,9 @@
         Task<Result<Word>> GetMostEasyWord(string firstTwoCharacters);
 
         Task<Result<Word>> GetHardestWord(string firstTwoCharacters);
+
+        Task<Result<Word>> GetAWord(string firstTwoCharacters, IList<string> excludedWords);
+
+        Task<bool> Exists(string word);
     }
 }

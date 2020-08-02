@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Domain\Fazan.Domain.Abstractions\Fazan.Domain.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Domain\Fazan.Domain.Ioc\Fazan.Domain.Ioc.csproj" />
     <ProjectReference Include="..\Fazan.Infrastructure.Logging\Fazan.Infrastructure.Logging.csproj" />
     <ProjectReference Include="..\Repositories\Fazan.Infrastructure.Repositories.PlainTextFile\Fazan.Infrastructure.Repositories.PlainTextFile.csproj" />
     <ProjectReference Include="..\Repositories\Fazan.Infrastructure.Repositories.SqliteRepository\Fazan.Infrastructure.Repositories.SqliteRepository.csproj" />

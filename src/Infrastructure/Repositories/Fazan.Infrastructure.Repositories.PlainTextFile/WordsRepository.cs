@@ -35,5 +35,11 @@ namespace Fazan.Infrastructure.Repositories.PlainTextFile
         {
             throw new NotImplementedException();
         }
+
+        /// <inheritdoc />
+        public Task<Result<Word>> GetAWord(string firstTwoCharacters, IList<string> excludedWords) => throw new NotImplementedException();
+
+        /// <inheritdoc />
+        public Task<bool> Exists(string word) => throw new NotImplementedException();
     }
 }

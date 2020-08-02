@@ -11,8 +11,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Domain\Fazan.Domain.Ioc\Fazan.Domain.Ioc.csproj" />
     <ProjectReference Include="..\..\Infrastructure\Fazan.Infrastructure.Ioc\Fazan.Infrastructure.Ioc.csproj" />
+    <ProjectReference Include="..\Fazan.Application.Common\Fazan.Application.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>

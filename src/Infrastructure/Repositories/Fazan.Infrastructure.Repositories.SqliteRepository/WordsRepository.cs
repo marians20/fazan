@@ -3,7 +3,6 @@
 namespace Fazan.Infrastructure.Repositories.SqliteRepository
 {
     using System.Collections.Generic;
-    using System.Data.Entity;
     using System.Linq;
     using System.Threading.Tasks;
     using CSharpFunctionalExtensions;
@@ -30,10 +29,10 @@ namespace Fazan.Infrastructure.Repositories.SqliteRepository
                 foreach (var word in data)
                 {
                     await Result.Try(async () =>
-                    {
-                        await context.AddAsync(word);
-                        await context.SaveChangesAsync();
-                    }).OnFailure(error => {/*log the error*/});
+                        {
+                            await context.AddAsync(word).ConfigureAwait(false);
+                            await context.SaveChangesAsync().ConfigureAwait(false);
+                        }).OnFailure(error => {/*log the error*/}).ConfigureAwait(false);
                 }
             });
 
@@ -41,8 +40,9 @@ namespace Fazan.Infrastructure.Repositories.SqliteRepository
         {
             try
             {
-                entity.DerivedWordsCount = await EntityFrameworkQueryableExtensions.CountAsync(context.Words, x => x.FirstLetters == entity.LastLetters);
-                await context.AddAsync(entity);
+                entity.DerivedWordsCount = await context.Words
+                                               .CountAsync(x => x.FirstLetters == entity.LastLetters).ConfigureAwait(false);
+                await context.AddAsync(entity).ConfigureAwait(false);
                 return Result.Success();
             }
             catch (Exception e)
@@ -56,30 +56,49 @@ namespace Fazan.Infrastructure.Repositories.SqliteRepository
             var entities = context.Words;
             foreach (var entity in entities)
             {
-                entity.DerivedWordsCount = await EntityFrameworkQueryableExtensions.CountAsync(context.Words, e => e.FirstLetters == entity.LastLetters);
+                entity.DerivedWordsCount = await context.Words.CountAsync(e => e.FirstLetters == entity.LastLetters)
+                                               .ConfigureAwait(false);
             }
 
-            return await Commit();
+            return await Commit().ConfigureAwait(false);
         }
 
         public Task<Result<int>> Commit() => Result.Try(() => context.SaveChangesAsync());
 
-        public async Task<Result<Word>> GetMostEasyWord(string firstTwoCharacters)
+        public Task<Result<Word>> GetMostEasyWord(string firstTwoCharacters)
         {
-            firstTwoCharacters = firstTwoCharacters.ToLower();
-            var word = context.Words.Where(w => w.FirstLetters == firstTwoCharacters)
-                .OrderByDescending(x => x.DerivedWordsCount)
-                .FirstOrDefault();
-            return await Task.Run(() => word != null ? Result.Success(word) : Result.Failure<Word>("Not found."));
+            var word = GetWordsQuery(firstTwoCharacters).OrderByDescending(x => x.DerivedWordsCount).FirstOrDefault();
+            return Task.Run(() => word != null ? Result.Success(word) : Result.Failure<Word>("Not found."));
         }
 
-        public async Task<Result<Word>> GetHardestWord(string firstTwoCharacters)
+        public Task<Result<Word>> GetHardestWord(string firstTwoCharacters)
+        {
+            var word = GetWordsQuery(firstTwoCharacters).OrderBy(x => x.DerivedWordsCount).FirstOrDefault();
+            return Task.Run(() => word != null ? Result.Success(word) : Result.Failure<Word>("Not found."));
+        }
+
+        /// <inheritdoc />
+        public async Task<Result<Word>> GetAWord(string firstTwoCharacters, IList<string> excludedWords)
+        {
+            var words = GetWordsQuery(firstTwoCharacters).OrderBy(x => x.DerivedWordsCount);
+            var filteredWords = words.Where(word => !excludedWords.Contains(word.Value));
+            if (!filteredWords.Any())
+            {
+                return Result.Failure<Word>("Not found.");
+            }
+
+            var randomPosition = new Random().Next(await filteredWords.CountAsync().ConfigureAwait(false));
+            return (await words.Skip(randomPosition).Take(1).ToListAsync().ConfigureAwait(false)).FirstOrDefault();
+        }
+
+        /// <inheritdoc />
+        public Task<bool> Exists(string word) =>
+            context.Words.AnyAsync(x => x.Value == word);
+
+        private IQueryable<Word> GetWordsQuery(string firstTwoCharacters)
         {
             firstTwoCharacters = firstTwoCharacters.ToLower();
-            var word = context.Words.Where(w => w.FirstLetters == firstTwoCharacters)
-                .OrderBy(x => x.DerivedWordsCount)
-                .FirstOrDefault();
-            return await Task.Run(() => word != null ? Result.Success(word) : Result.Failure<Word>("Not found."));
+            return context.Words.Where(w => w.FirstLetters == firstTwoCharacters);
         }
     }
 }

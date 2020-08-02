@@ -1,31 +1,30 @@
-﻿namespace WordsCrawler
+﻿using System.Threading.Tasks;
+using CSharpFunctionalExtensions;
+using Fazan.Application.Common;
+using Fazan.Domain.Abstractions;
+using Fazan.Domain.Ioc;
+using Fazan.Infrastructure.Ioc;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace WordsCrawler
 {
-    using CSharpFunctionalExtensions;
-    using Microsoft.Extensions.DependencyInjection;
-    using System.Threading.Tasks;
-    using Fazan.Domain.Abstractions;
-    using Fazan.Domain.Ioc;
-    using Fazan.Infrastructure.Ioc;
-
-    public class Application
+    public class Application : IApplication
     {
-        private ServiceProvider serviceProvider;
-
         public void ConfigureDi()
         {
             var services = new ServiceCollection();
 
             services.RegisterSqliteWordsRepository(@"Data Source=d:\fazan.sqlite")
-                .RegisterWordsService()
-                .RegisterCrawlerService();
+                .RegisterAllDomainServices()
+                .RegisterMassTransit();
 
-            serviceProvider = services.BuildServiceProvider();
+            ServiceLocator.Provider = services.BuildServiceProvider();
         }
 
-        public async Task<Result> Run()
+        public Task<Result> Run()
         {
-            var crawler = serviceProvider.GetService<ICrawler>();
-            return await crawler.ReadAllPages();
+            var crawler = ServiceLocator.GetService<ICrawler>();
+            return crawler.ReadAllPages();
         }
     }
 }
