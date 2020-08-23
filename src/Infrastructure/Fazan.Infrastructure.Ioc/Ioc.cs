@@ -1,5 +1,7 @@
 ﻿using Fazan.Domain.Ioc;
 
+using Microsoft.Extensions.Configuration;
+
 namespace Fazan.Infrastructure.Ioc
 {
     using Fazan.Domain.Abstractions;
@@ -26,14 +28,25 @@ namespace Fazan.Infrastructure.Ioc
             services.AddDbContext<FazanSqliteDbContext>(options => options.UseSqlite(connectionString))
                 .AddTransient<IWordsRepository, WordsRepository>();
 
-        public static IServiceCollection RegisterMassTransit(this IServiceCollection services) =>
+        public static IServiceCollection RegisterMassTransit(this IServiceCollection services, IConfiguration configuration) =>
             services.AddMassTransit(x =>
                 {
-                    x.UsingInMemory((context, cfg) =>
-                    {
-                        cfg.TransportConcurrencyLimit = 100;
-                        cfg.ConfigureEndpoints(context);
-                    });
+                    //x.UsingInMemory((context, cfg) =>
+                    //{
+                    //    cfg.TransportConcurrencyLimit = 100;
+                    //    cfg.ConfigureEndpoints(context);
+                    //});
+                    x.UsingRabbitMq(
+                        (context, cfg) =>
+                            {
+                                cfg.Host(
+                                    configuration["RabbitMQ:host"],
+                                    x =>
+                                        {
+                                            x.Username(configuration["RabbitMQ:user"]);
+                                            x.Password(configuration["RabbitMQ:password"]);
+                                        });
+                            });
                 })
                 .AddTransient<IMediator>(srv => Bus.Factory.CreateMediator(cfg =>
                 {

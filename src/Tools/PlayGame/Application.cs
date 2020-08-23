@@ -1,32 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+
+using ConsoleApplication;
+
 using CSharpFunctionalExtensions;
-using Fazan.Application.Common;
+
 using Fazan.Domain.Abstractions;
 using Fazan.Domain.Ioc;
 using Fazan.Domain.Models;
 using Fazan.Domain.Services;
 using Fazan.Infrastructure.Ioc;
 using MassTransit.Mediator;
+
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+
+using PlayGame.Properties;
 
 namespace PlayGame
 {
-    public class Application : IApplication
+    public class Application : ApplicationBase
     {
-        public void ConfigureDi()
-        {
-            IServiceCollection services = new ServiceCollection();
-
-            services.RegisterSqliteWordsRepository(@"Data Source=d:\fazan.sqlite")
-                .RegisterAllDomainServices()
-                .RegisterMassTransit();
-
-            ServiceLocator.Provider = services.BuildServiceProvider();
-        }
-
-        public async Task<Result> Run()
+        public override async Task<Result> RunAsync()
         {
             var words = ServiceLocator.GetService<IWordsService>();
             var mediator = ServiceLocator.GetService<IMediator>();
@@ -38,7 +34,7 @@ namespace PlayGame
 
             do
             {
-                bool wordExists = true;
+                var wordExists = true;
                 do
                 {
                     await mediator.Send(Log.Create("Enter a word")).ConfigureAwait(false);
@@ -77,6 +73,17 @@ namespace PlayGame
             while (!(string.IsNullOrEmpty(playersWord) || string.IsNullOrEmpty(computersWord)));
 
             return Result.Success();
+        }
+
+        protected override void ConfigureDi()
+        {
+            IServiceCollection services = new ServiceCollection();
+
+            services.RegisterSqliteWordsRepository(Configuration.GetConnectionString(Resources.SqliteConnectionStringName))
+                .RegisterAllDomainServices()
+                .RegisterMassTransit(Configuration);
+
+            ServiceLocator.Provider = services.BuildServiceProvider();
         }
 
         private static Task<Result<string>> ComputerReply(IWordsService words, string playersWord, IList<string> excludedWords) =>

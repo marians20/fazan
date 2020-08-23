@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace WordsCrawler.Properties {
+namespace ConsoleApplication.Properties {
     using System;
     
     
@@ -39,7 +39,7 @@ namespace WordsCrawler.Properties {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("WordsCrawler.Properties.Resources", typeof(Resources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("ConsoleApplication.Properties.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -61,11 +61,11 @@ namespace WordsCrawler.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Sqlite.
+        ///   Looks up a localized string similar to appsettings.json.
         /// </summary>
-        internal static string SqliteConnectionStringName {
+        internal static string SettingsFileName {
             get {
-                return ResourceManager.GetString("SqliteConnectionStringName", resourceCulture);
+                return ResourceManager.GetString("SettingsFileName", resourceCulture);
             }
         }
     }

@@ -39,8 +39,7 @@ namespace AppRunner
             }
 
             var application = ApplicationsFactory.GetApplication(action.Value());
-            application.ConfigureDi();
-            await application.Run().ConfigureAwait(false);
+            await application.RunAsync().ConfigureAwait(false);
             return 0;
         }
     }
