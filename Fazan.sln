@@ -41,7 +41,14 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fazan.Infrastructure.Loggin
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CrossCutingConcerns", "CrossCutingConcerns", "{729993FA-49EA-45F9-82F7-B6457AE3CBAC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApplication", "src\Infrastructure\CrossCuttingConcerns\ConsoleApplication\ConsoleApplication.csproj", "{FC954362-940D-4FFC-98F5-C8480C3D1CA8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleApplication", "src\Infrastructure\CrossCuttingConcerns\ConsoleApplication\ConsoleApplication.csproj", "{FC954362-940D-4FFC-98F5-C8480C3D1CA8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docker", "Docker", "{C53C0BD5-E154-4B36-B3F1-1EFD2D09552A}"
+	ProjectSection(SolutionItems) = preProject
+		docker\rabbit-mg.ps1 = docker\rabbit-mg.ps1
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{2F5A113A-A6EF-48DA-AA91-54D1B94BC751}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

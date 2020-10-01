@@ -1,6 +1,4 @@
 ﻿using Fazan.Domain.Models;
-
-using MassTransit.Context;
 using MassTransit.Mediator;
 
 namespace Fazan.Domain.Services.CrawlerService
@@ -19,14 +17,14 @@ namespace Fazan.Domain.Services.CrawlerService
 
     public class Crawler : ICrawler
     {
-        private readonly ICrawlerContext context;
+        private readonly ICrawlerContext _context;
 
-        private readonly IMediator mediator;
+        private readonly IMediator _mediator;
 
         public Crawler(ICrawlerContext context, IMediator mediator)
         {
-            this.context = context;
-            this.mediator = mediator;
+            this._context = context;
+            this._mediator = mediator;
         }
 
         public Task<Result<HtmlDocument>> GetPageContent(string url) =>
@@ -39,25 +37,25 @@ namespace Fazan.Domain.Services.CrawlerService
         public async Task<Result> ReadAllPages()
         {
             var oldUrl = string.Empty;
-            var url = context.BaseUrl;
-            var uriBuildr = new UriBuilder(url);
-            var scheme = uriBuildr.Scheme;
-            var host = uriBuildr.Host;
-            var port = uriBuildr.Port;
+            var url = _context.BaseUrl;
+            var uriBuilder = new UriBuilder(url);
+            var scheme = uriBuilder.Scheme;
+            var host = uriBuilder.Host;
+            var port = uriBuilder.Port;
 
-            Result<HtmlDocument> result = Result.Success(new HtmlDocument());
+            Result<HtmlDocument> result;
             do
             {
                 result = await GetPageContent(url).Tap(
                              async htmlDocument =>
                                  {
-                                     var words = context.DomProcessor.GetWordsFromDoc(htmlDocument);
-                                     await mediator.Send(Log.Create(string.Format(
+                                     var words = _context.DomProcessor.GetWordsFromDoc(htmlDocument);
+                                     await _mediator.Send(Log.Create(string.Format(
                                          Resources.Crawler_ReadAllPages_Adding_words_from__0__to__1_,
                                          words.First(),
                                          words.Last()))).ConfigureAwait(false);
-                                     await context.WordsService.CreateBulk(words).ConfigureAwait(false);
-                                     var nextUrl = context.DomProcessor.GetNextPageUrl(htmlDocument);
+                                     await _context.WordsService.CreateBulk(words).ConfigureAwait(false);
+                                     var nextUrl = _context.DomProcessor.GetNextPageUrl(htmlDocument);
                                      oldUrl = url;
                                      url = $"{scheme}://{host}:{port}{nextUrl}";
                                  }).ConfigureAwait(false);
@@ -69,8 +67,8 @@ namespace Fazan.Domain.Services.CrawlerService
                 return result;
             }
 
-            await mediator.Send(Log.Create("Started calculating words dependencies")).ConfigureAwait(false);
-            await context.WordsService.Calculate().ConfigureAwait(false);
+            await _mediator.Send(Log.Create("Started calculating words dependencies")).ConfigureAwait(false);
+            await _context.WordsService.Calculate().ConfigureAwait(false);
             return result;
         }
 
@@ -82,12 +80,15 @@ namespace Fazan.Domain.Services.CrawlerService
                     Result<string> bodyResult;
                     using (var response = (HttpWebResponse) request.GetResponse())
                     {
-                        string result;
+                        var result = string.Empty;
                         using (var dataStream = response.GetResponseStream())
                         {
-                            using (var reader = new StreamReader(dataStream))
+                            if (dataStream != null)
                             {
-                                result = reader.ReadToEnd();
+                                using (var reader = new StreamReader(dataStream))
+                                {
+                                    result = reader.ReadToEnd();
+                                }
                             }
                         }
 
@@ -104,7 +105,7 @@ namespace Fazan.Domain.Services.CrawlerService
         private async Task<Result<string>> GetBodyUsingHttpClient(string url)
         {
             var request = new HttpRequestMessage(HttpMethod.Get, url);
-            var response = await context.Client.SendAsync(request).ConfigureAwait(false);
+            var response = await _context.Client.SendAsync(request).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 return Result.Failure<string>($"Status code: {response.StatusCode}");

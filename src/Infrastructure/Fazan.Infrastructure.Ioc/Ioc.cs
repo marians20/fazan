@@ -4,11 +4,10 @@ using Microsoft.Extensions.Configuration;
 
 namespace Fazan.Infrastructure.Ioc
 {
-    using Fazan.Domain.Abstractions;
-    using Fazan.Infrastructure.Logging;
-    using Fazan.Infrastructure.Repositories.SqliteRepository;
+    using Domain.Abstractions;
+    using Logging;
+    using Repositories.SqliteRepository;
     using MassTransit;
-    using MassTransit.Mediator;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.DependencyInjection;
     using WordsRepository = Repositories.SqliteRepository.WordsRepository;
@@ -41,14 +40,14 @@ namespace Fazan.Infrastructure.Ioc
                             {
                                 cfg.Host(
                                     configuration["RabbitMQ:host"],
-                                    x =>
+                                    configurator =>
                                         {
-                                            x.Username(configuration["RabbitMQ:user"]);
-                                            x.Password(configuration["RabbitMQ:password"]);
+                                            configurator.Username(configuration["RabbitMQ:user"]);
+                                            configurator.Password(configuration["RabbitMQ:password"]);
                                         });
                             });
                 })
-                .AddTransient<IMediator>(srv => Bus.Factory.CreateMediator(cfg =>
+                .AddTransient(srv => Bus.Factory.CreateMediator(cfg =>
                 {
                     cfg.Consumer<LoggingConsumer>();
                 }));
